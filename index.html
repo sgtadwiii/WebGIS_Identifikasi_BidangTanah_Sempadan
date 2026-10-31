@@ -111,89 +111,99 @@
 
     <!-- MAIN CONTENT AREA -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden md:pl-64">
-<!-- TOPBAR SINKRON DENGAN SISTEM LOGIN -->
-<header class="h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shadow-sm z-20">
-    <div class="flex items-center gap-3">
-        <button onclick="toggleMobileSidebar()"
-            class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none text-lg">
-            <i class="fa-solid fa-bars"></i>
-        </button>
-        <h2 class="text-xs md:text-base font-semibold text-slate-800 truncate max-w-[210px] sm:max-w-none">
-            Identifikasi Sebaran Bidang Tanah di Kawasan Sempadan Pantai
-        </h2>
-        <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md border border-slate-200 font-medium hidden lg:inline-block">
-            Desa Lontar, Kec. Tirtayasa, Kab. Serang
-        </span>
-    </div>
-
-    <!-- PROFILE / LOGIN DROPDOWN -->
-    <div class="flex items-center gap-3 relative">
-        <div class="hidden sm:flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-            <i class="fa-solid fa-location-dot text-rose-500"></i>
-            <span class="font-medium">Desa Lontar</span>
-        </div>
-
-        <!-- Tombol Profil & Trigger Modal -->
-        <button onclick="toggleUserDropdown()" id="user-menu-btn" 
-            class="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 transition-colors focus:outline-none">
-            <div id="user-avatar" class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs border border-slate-300">
-                <i class="fa-solid fa-user"></i>
-            </div>
-            <span id="user-display-name" class="text-xs font-semibold text-slate-700 hidden md:inline-block">Tamu</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 mr-1"></i>
-        </button>
-
-        <!-- Dropdown Menu User -->
-        <div id="user-dropdown" class="hidden absolute right-0 top-12 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 text-xs">
-            <div id="user-info-box" class="px-4 py-2 border-b border-slate-100">
-                <p class="font-bold text-slate-800" id="dropdown-user-name">Mode Tamu (Guest)</p>
-                <p class="text-[10px] text-slate-400" id="dropdown-user-role">Informasi Terbatas</p>
-            </div>
-            <div id="auth-action-area">
-                <button onclick="openLoginModal()" class="w-full text-left px-4 py-2 text-blue-600 font-semibold hover:bg-slate-50 flex items-center gap-2">
-                    <i class="fa-solid fa-right-to-bracket"></i> Login Admin
+        <!-- TOPBAR SINKRON DENGAN SISTEM LOGIN -->
+        <header
+            class="h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shadow-sm z-20">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleMobileSidebar()"
+                    class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none text-lg">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
-            </div>
-        </div>
-    </div>
-</header>
-
-<!-- MODAL LOGIN DEMO WEBGIS -->
-<div id="login-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl border border-slate-100 p-6 space-y-5">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="text-base font-bold text-slate-800">Login Administrator</h3>
-            <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-        
-        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Username</label>
-                <input type="text" id="login-username" required placeholder="Masukkan username"
-                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-                <input type="password" id="login-password" required placeholder="Masukkan password"
-                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <h2 class="text-xs md:text-base font-semibold text-slate-800 truncate max-w-[210px] sm:max-w-none">
+                    Identifikasi Sebaran Bidang Tanah di Kawasan Sempadan Pantai
+                </h2>
+                <span
+                    class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md border border-slate-200 font-medium hidden lg:inline-block">
+                    Desa Lontar, Kec. Tirtayasa, Kab. Serang
+                </span>
             </div>
 
-            <!-- Pesan Error Login -->
-            <div id="login-error" class="hidden text-[11px] text-rose-600 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200">
-                Username atau password salah!
-            </div>
+            <!-- PROFILE / LOGIN DROPDOWN -->
+            <div class="flex items-center gap-3 relative">
+                <div
+                    class="hidden sm:flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                    <i class="fa-solid fa-location-dot text-rose-500"></i>
+                    <span class="font-medium">Desa Lontar</span>
+                </div>
 
-            <div class="pt-2">
-                <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition-colors">
-                    Masuk (Login)
+                <!-- Tombol Profil & Trigger Modal -->
+                <button onclick="toggleUserDropdown()" id="user-menu-btn"
+                    class="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 transition-colors focus:outline-none">
+                    <div id="user-avatar"
+                        class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs border border-slate-300">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <span id="user-display-name"
+                        class="text-xs font-semibold text-slate-700 hidden md:inline-block">Tamu</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 mr-1"></i>
                 </button>
-            </div>
-        </form>
 
-    </div>
-</div>
+                <!-- Dropdown Menu User -->
+                <div id="user-dropdown"
+                    class="hidden absolute right-0 top-12 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 text-xs">
+                    <div id="user-info-box" class="px-4 py-2 border-b border-slate-100">
+                        <p class="font-bold text-slate-800" id="dropdown-user-name">Mode Tamu (Guest)</p>
+                        <p class="text-[10px] text-slate-400" id="dropdown-user-role">Informasi Terbatas</p>
+                    </div>
+                    <div id="auth-action-area">
+                        <button onclick="openLoginModal()"
+                            class="w-full text-left px-4 py-2 text-blue-600 font-semibold hover:bg-slate-50 flex items-center gap-2">
+                            <i class="fa-solid fa-right-to-bracket"></i> Login Admin
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MODAL LOGIN DEMO WEBGIS -->
+        <div id="login-modal"
+            class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl border border-slate-100 p-6 space-y-5">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-base font-bold text-slate-800">Login Administrator</h3>
+                    <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+                        <input type="text" id="login-username" required placeholder="Masukkan username"
+                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                        <input type="password" id="login-password" required placeholder="Masukkan password"
+                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Pesan Error Login -->
+                    <div id="login-error"
+                        class="hidden text-[11px] text-rose-600 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200">
+                        Username atau password salah!
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit"
+                            class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition-colors">
+                            Masuk (Login)
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
 
         <!-- DASHBOARD PAGES CONTAINER -->
         <main class="flex-1 overflow-y-auto bg-slate-50 relative p-4 md:p-6">
@@ -589,135 +599,175 @@
             </section>
 
             <!-- 6. HALAMAN INFORMASI DAN METODOLOGI -->
-<section id="page-informasi" class="page-content hidden space-y-6">
-    <h2 class="text-xl font-bold text-slate-800">Informasi dan Metodologi</h2>
+            <section id="page-informasi" class="page-content hidden space-y-6">
+                <h2 class="text-xl font-bold text-slate-800">Informasi dan Metodologi</h2>
 
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
-        <!-- Tab Navigasi -->
-        <div class="flex flex-wrap border-b border-slate-200 gap-x-6 text-sm font-semibold">
-            <button onclick="switchInfoTab('wilayah')" id="btn-tab-wilayah" class="info-tab-btn pb-3 text-blue-600 border-b-2 border-blue-600 transition-colors">Deskripsi Wilayah</button>
-            <button onclick="switchInfoTab('sumber')" id="btn-tab-sumber" class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Sumber Data</button>
-            <button onclick="switchInfoTab('metode')" id="btn-tab-metode" class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Metode</button>
-            <button onclick="switchInfoTab('dasar')" id="btn-tab-dasar" class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Dasar Penetapan</button>
-            <button onclick="switchInfoTab('tahapan')" id="btn-tab-tahapan" class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Tahapan Analisis</button>
-        </div>
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+                    <!-- Tab Navigasi -->
+                    <div class="flex flex-wrap border-b border-slate-200 gap-x-6 text-sm font-semibold">
+                        <button onclick="switchInfoTab('wilayah')" id="btn-tab-wilayah"
+                            class="info-tab-btn pb-3 text-blue-600 border-b-2 border-blue-600 transition-colors">Deskripsi
+                            Wilayah</button>
+                        <button onclick="switchInfoTab('sumber')" id="btn-tab-sumber"
+                            class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Sumber
+                            Data</button>
+                        <button onclick="switchInfoTab('metode')" id="btn-tab-metode"
+                            class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Metode</button>
+                        <button onclick="switchInfoTab('dasar')" id="btn-tab-dasar"
+                            class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Dasar
+                            Penetapan</button>
+                        <button onclick="switchInfoTab('tahapan')" id="btn-tab-tahapan"
+                            class="info-tab-btn pb-3 text-slate-400 hover:text-slate-600 transition-colors">Tahapan
+                            Analisis</button>
+                    </div>
 
-        <!-- Konten Tab: Deskripsi Wilayah -->
-        <div id="content-tab-wilayah" class="info-tab-content space-y-4 text-sm text-slate-600 leading-relaxed">
-            <p class="font-semibold text-slate-800 text-base">
-                Desa Lontar merupakan salah satu desa yang berada di Kecamatan Tirtayasa, Kabupaten Serang, Provinsi Banten. Desa ini terletak di wilayah pesisir utara Kabupaten Serang yang berbatasan langsung dengan Laut Jawa.
-            </p>
-            <p>
-                Karakteristik wilayah Desa Lontar didominasi oleh kawasan pesisir dengan aktivitas masyarakat berupa perikanan budidaya, tambak, pertanian, dan permukiman.
-            </p>
-            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2 mt-4">
-                <h4 class="font-bold text-slate-800">Informasi Wilayah:</h4>
-                <ul class="list-disc pl-5 space-y-1">
-                    <li><strong class="text-slate-700">Lokasi:</strong> Desa Lontar, Kecamatan Tirtayasa, Kabupaten Serang, Banten.</li>
-                    <li><strong class="text-slate-700">Luas wilayah:</strong> ± 649.9 ha (Sesuaikan dengan data batas administrasi yang digunakan).</li>
-                    <li><strong class="text-slate-700">Karakteristik:</strong> Wilayah pesisir dataran rendah.</li>
-                    <li><strong class="text-slate-700">Potensi wilayah:</strong> Perikanan budidaya, tambak, dan permukiman.</li>
-                </ul>
-            </div>
-        </div>
+                    <!-- Konten Tab: Deskripsi Wilayah -->
+                    <div id="content-tab-wilayah"
+                        class="info-tab-content space-y-4 text-sm text-slate-600 leading-relaxed">
+                        <p class="font-semibold text-slate-800 text-base">
+                            Desa Lontar merupakan salah satu desa yang berada di Kecamatan Tirtayasa, Kabupaten Serang,
+                            Provinsi Banten. Desa ini terletak di wilayah pesisir utara Kabupaten Serang yang berbatasan
+                            langsung dengan Laut Jawa.
+                        </p>
+                        <p>
+                            Karakteristik wilayah Desa Lontar didominasi oleh kawasan pesisir dengan aktivitas
+                            masyarakat berupa perikanan budidaya, tambak, pertanian, dan permukiman.
+                        </p>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2 mt-4">
+                            <h4 class="font-bold text-slate-800">Informasi Wilayah:</h4>
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li><strong class="text-slate-700">Lokasi:</strong> Desa Lontar, Kecamatan Tirtayasa,
+                                    Kabupaten Serang, Banten.</li>
+                                <li><strong class="text-slate-700">Luas wilayah:</strong> ± 649.9 ha (Sesuaikan dengan
+                                    data batas administrasi yang digunakan).</li>
+                                <li><strong class="text-slate-700">Karakteristik:</strong> Wilayah pesisir dataran
+                                    rendah.</li>
+                                <li><strong class="text-slate-700">Potensi wilayah:</strong> Perikanan budidaya, tambak,
+                                    dan permukiman.</li>
+                            </ul>
+                        </div>
+                    </div>
 
-        <!-- Konten Tab: Sumber Data -->
-        <div id="content-tab-sumber" class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
-            <p>Data yang digunakan dalam penelitian ini terdiri atas data primer dan data sekunder yang digunakan untuk mendukung proses pengolahan dan analisis spasial.</p>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
-                    <h4 class="font-bold text-slate-800 text-sm">A. Data Primer</h4>
-                    <ul class="list-disc pl-4 space-y-1">
-                        <li>Data hasil pengukuran lapangan menggunakan GNSS RTK.</li>
-                        <li>Data hasil survei dan identifikasi penggunaan lahan.</li>
-                        <li>Dokumentasi kondisi wilayah penelitian.</li>
-                    </ul>
+                    <!-- Konten Tab: Sumber Data -->
+                    <div id="content-tab-sumber"
+                        class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
+                        <p>Data yang digunakan dalam penelitian ini terdiri atas data primer dan data sekunder yang
+                            digunakan untuk mendukung proses pengolahan dan analisis spasial.</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                                <h4 class="font-bold text-slate-800 text-sm">A. Data Primer</h4>
+                                <ul class="list-disc pl-4 space-y-1">
+                                    <li>Data hasil pengukuran lapangan menggunakan GNSS RTK.</li>
+                                    <li>Data hasil survei dan identifikasi penggunaan lahan.</li>
+                                    <li>Dokumentasi kondisi wilayah penelitian.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
+                                <h4 class="font-bold text-slate-800 text-sm">B. Data Sekunder</h4>
+                                <ul class="list-disc pl-4 space-y-1">
+                                    <li>Peta Rupa Bumi Indonesia (RBI).</li>
+                                    <li>Data bidang tanah dari Kantor Pertanahan.</li>
+                                    <li>Data penggunaan lahan hasil interpretasi citra satelit.</li>
+                                    <li>Data batas administrasi Desa Lontar.</li>
+                                    <li>Data garis pantai dan kawasan sempadan pantai.</li>
+                                    <li>Data pendukung lainnya.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Konten Tab: Metode -->
+                    <div id="content-tab-metode"
+                        class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
+                        <p>Penelitian ini menggunakan metode analisis spasial dengan memanfaatkan Sistem Informasi
+                            Geografis (SIG) untuk mengidentifikasi keterkaitan antara bidang tanah, penggunaan lahan,
+                            dan kawasan sempadan pantai.</p>
+                        <p class="font-semibold text-slate-800">Metode yang digunakan meliputi:</p>
+                        <ol class="list-decimal pl-5 space-y-2">
+                            <li><strong class="text-slate-700">Digitasi:</strong> Mengidentifikasi dan menggambarkan
+                                objek penggunaan lahan berdasarkan citra satelit.</li>
+                            <li><strong class="text-slate-700">Pengukuran GNSS RTK:</strong> Memperoleh data koordinat
+                                objek melalui pengukuran lapangan.</li>
+                            <li><strong class="text-slate-700">Buffering:</strong> Membuat zona sempadan pantai
+                                berdasarkan jarak yang digunakan dalam analisis.</li>
+                            <li><strong class="text-slate-700">Overlay:</strong> Menggabungkan beberapa layer spasial
+                                untuk mengetahui keterkaitan antarobjek.</li>
+                            <li><strong class="text-slate-700">Intersection:</strong> Mengidentifikasi bidang tanah dan
+                                penggunaan lahan yang berada di dalam maupun beririsan dengan kawasan sempadan pantai.
+                            </li>
+                            <li><strong class="text-slate-700">WebGIS:</strong> Menyajikan hasil pengolahan dan analisis
+                                spasial dalam bentuk peta interaktif berbasis web.</li>
+                        </ol>
+                    </div>
+
+                    <!-- Konten Tab: Dasar Penetapan -->
+                    <div id="content-tab-dasar"
+                        class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
+                        <p class="font-semibold text-slate-800">Dasar hukum dan peraturan yang digunakan sebagai acuan
+                            meliputi:</p>
+                        <ul class="list-disc pl-5 space-y-3">
+                            <li>
+                                <strong>Peraturan Presiden Nomor 51 Tahun 2016</strong> tentang Batas Sempadan Pantai.
+                            </li>
+                            <li>
+                                <strong>Peraturan Menteri Kelautan dan Perikanan Nomor 21/PERMEN-KP/2018</strong>
+                                tentang Tata Cara Penghitungan Batas Sempadan Pantai.
+                            </li>
+                            <li>
+                                <strong>Peraturan Menteri ATR/Kepala BPN Nomor 11 Tahun 2021</strong> tentang Tata Cara
+                                Penyusunan, Peninjauan Kembali, Revisi, dan Penerbitan Persetujuan Substansi Rencana
+                                Tata Ruang Wilayah Provinsi, Kabupaten, Kota, dan Rencana Detail Tata Ruang.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Konten Tab: Tahapan Analisis -->
+                    <div id="content-tab-tahapan"
+                        class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
+                        <p>Proses analisis dilakukan melalui beberapa tahapan untuk menghasilkan informasi spasial yang
+                            dapat ditampilkan pada WebGIS.</p>
+                        <div class="space-y-3">
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <strong class="text-slate-800 block mb-1">1. Persiapan Data</strong>
+                                <p class="text-xs text-slate-600">Mengumpulkan data bidang tanah, penggunaan lahan,
+                                    batas administrasi, garis pantai, dan data pendukung lainnya.</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <strong class="text-slate-800 block mb-1">2. Pengolahan Data</strong>
+                                <p class="text-xs text-slate-600">Melakukan digitasi penggunaan lahan, pengolahan data
+                                    bidang tanah, serta pengukuran lapangan menggunakan GNSS RTK.</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <strong class="text-slate-800 block mb-1">3. Pembuatan Kawasan Sempadan Pantai</strong>
+                                <p class="text-xs text-slate-600">Membuat zona buffer berdasarkan jarak 100 meter dari
+                                    garis pantai sebagai dasar analisis awal.</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <strong class="text-slate-800 block mb-1">4. Analisis Spasial</strong>
+                                <p class="text-xs text-slate-600">Melakukan overlay dan intersection untuk
+                                    mengidentifikasi bidang tanah dan penggunaan lahan terhadap kawasan sempadan pantai.
+                                </p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <strong class="text-slate-800 block mb-1">5. Identifikasi Hasil</strong>
+                                <p class="text-xs text-slate-600 mb-1">Mengelompokkan bidang tanah menjadi tiga
+                                    kategori, yaitu:</p>
+                                <ul class="list-disc pl-5 text-xs text-slate-600 space-y-0.5">
+                                    <li>Bidang tanah di dalam kawasan sempadan.</li>
+                                    <li>Bidang tanah beririsan dengan kawasan sempadan.</li>
+                                    <li>Bidang tanah di luar kawasan sempadan.</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <strong class="text-slate-800 block mb-1">6. Penyajian WebGIS</strong>
+                                <p class="text-xs text-slate-600">Menampilkan hasil analisis dalam bentuk peta
+                                    interaktif, informasi atribut, statistik, dan rekomendasi.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
-                    <h4 class="font-bold text-slate-800 text-sm">B. Data Sekunder</h4>
-                    <ul class="list-disc pl-4 space-y-1">
-                        <li>Peta Rupa Bumi Indonesia (RBI).</li>
-                        <li>Data bidang tanah dari Kantor Pertanahan.</li>
-                        <li>Data penggunaan lahan hasil interpretasi citra satelit.</li>
-                        <li>Data batas administrasi Desa Lontar.</li>
-                        <li>Data garis pantai dan kawasan sempadan pantai.</li>
-                        <li>Data pendukung lainnya.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Konten Tab: Metode -->
-        <div id="content-tab-metode" class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
-            <p>Penelitian ini menggunakan metode analisis spasial dengan memanfaatkan Sistem Informasi Geografis (SIG) untuk mengidentifikasi keterkaitan antara bidang tanah, penggunaan lahan, dan kawasan sempadan pantai.</p>
-            <p class="font-semibold text-slate-800">Metode yang digunakan meliputi:</p>
-            <ol class="list-decimal pl-5 space-y-2">
-                <li><strong class="text-slate-700">Digitasi:</strong> Mengidentifikasi dan menggambarkan objek penggunaan lahan berdasarkan citra satelit.</li>
-                <li><strong class="text-slate-700">Pengukuran GNSS RTK:</strong> Memperoleh data koordinat objek melalui pengukuran lapangan.</li>
-                <li><strong class="text-slate-700">Buffering:</strong> Membuat zona sempadan pantai berdasarkan jarak yang digunakan dalam analisis.</li>
-                <li><strong class="text-slate-700">Overlay:</strong> Menggabungkan beberapa layer spasial untuk mengetahui keterkaitan antarobjek.</li>
-                <li><strong class="text-slate-700">Intersection:</strong> Mengidentifikasi bidang tanah dan penggunaan lahan yang berada di dalam maupun beririsan dengan kawasan sempadan pantai.</li>
-                <li><strong class="text-slate-700">WebGIS:</strong> Menyajikan hasil pengolahan dan analisis spasial dalam bentuk peta interaktif berbasis web.</li>
-            </ol>
-        </div>
-
-        <!-- Konten Tab: Dasar Penetapan -->
-        <div id="content-tab-dasar" class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
-            <p class="font-semibold text-slate-800">Dasar hukum dan peraturan yang digunakan sebagai acuan meliputi:</p>
-            <ul class="list-disc pl-5 space-y-3">
-                <li>
-                    <strong>Peraturan Presiden Nomor 51 Tahun 2016</strong> tentang Batas Sempadan Pantai.
-                </li>
-                <li>
-                    <strong>Peraturan Menteri Kelautan dan Perikanan Nomor 21/PERMEN-KP/2018</strong> tentang Tata Cara Penghitungan Batas Sempadan Pantai.
-                </li>
-                <li>
-                    <strong>Peraturan Menteri ATR/Kepala BPN Nomor 11 Tahun 2021</strong> tentang Tata Cara Penyusunan, Peninjauan Kembali, Revisi, dan Penerbitan Persetujuan Substansi Rencana Tata Ruang Wilayah Provinsi, Kabupaten, Kota, dan Rencana Detail Tata Ruang.
-                </li>
-            </ul>
-        </div>
-
-        <!-- Konten Tab: Tahapan Analisis -->
-        <div id="content-tab-tahapan" class="info-tab-content hidden space-y-4 text-sm text-slate-600 leading-relaxed">
-            <p>Proses analisis dilakukan melalui beberapa tahapan untuk menghasilkan informasi spasial yang dapat ditampilkan pada WebGIS.</p>
-            <div class="space-y-3">
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <strong class="text-slate-800 block mb-1">1. Persiapan Data</strong>
-                    <p class="text-xs text-slate-600">Mengumpulkan data bidang tanah, penggunaan lahan, batas administrasi, garis pantai, dan data pendukung lainnya.</p>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <strong class="text-slate-800 block mb-1">2. Pengolahan Data</strong>
-                    <p class="text-xs text-slate-600">Melakukan digitasi penggunaan lahan, pengolahan data bidang tanah, serta pengukuran lapangan menggunakan GNSS RTK.</p>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <strong class="text-slate-800 block mb-1">3. Pembuatan Kawasan Sempadan Pantai</strong>
-                    <p class="text-xs text-slate-600">Membuat zona buffer berdasarkan jarak 100 meter dari garis pantai sebagai dasar analisis awal.</p>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <strong class="text-slate-800 block mb-1">4. Analisis Spasial</strong>
-                    <p class="text-xs text-slate-600">Melakukan overlay dan intersection untuk mengidentifikasi bidang tanah dan penggunaan lahan terhadap kawasan sempadan pantai.</p>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <strong class="text-slate-800 block mb-1">5. Identifikasi Hasil</strong>
-                    <p class="text-xs text-slate-600 mb-1">Mengelompokkan bidang tanah menjadi tiga kategori, yaitu:</p>
-                    <ul class="list-disc pl-5 text-xs text-slate-600 space-y-0.5">
-                        <li>Bidang tanah di dalam kawasan sempadan.</li>
-                        <li>Bidang tanah beririsan dengan kawasan sempadan.</li>
-                        <li>Bidang tanah di luar kawasan sempadan.</li>
-                    </ul>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <strong class="text-slate-800 block mb-1">6. Penyajian WebGIS</strong>
-                    <p class="text-xs text-slate-600">Menampilkan hasil analisis dalam bentuk peta interaktif, informasi atribut, statistik, dan rekomendasi.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-
+            </section>
 
             <!-- 7. HALAMAN HASIL DAN REKOMENDASI -->
             <section id="page-rekomendasi" class="page-content hidden space-y-6">

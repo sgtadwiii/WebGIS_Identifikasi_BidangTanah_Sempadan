@@ -50,9 +50,9 @@ function switchTab(tabId) {
         } else if (tabId === 'identifikasi') {
             if (typeof initIdentifikasiMap === 'function') initIdentifikasiMap();
             if (typeof mapIdentifikasi !== 'undefined' && mapIdentifikasi) mapIdentifikasi.invalidateSize();
-            loadAndRenderZoningStats(); // Sinkronisasi otomatis statistik zonasi sempadan dari TutupanLahan.json
+            loadAndRenderZoningStats(); // Sinkronisasi otomatis statistik zonasi sempadan
         } else if (tabId === 'statistik') {
-            renderStatCharts();
+            loadAndRenderStatistics(); // Sinkronisasi otomatis halaman statistik & card total bidang
         }
     }, 150);
 }
@@ -243,53 +243,114 @@ async function loadAndRenderZoningStats() {
 }
 
 /**
- * Render Bar & Pie Charts untuk Statistik
+ * Fungsi untuk Menghitung dan Menyinkronkan Statistik Spasial & Kartu Total di Halaman Statistik
  */
-function renderStatCharts() {
-    if (!chartCategoryBarObj) {
-        const ctxBar = document.getElementById('chartCategoryBar');
-        if (ctxBar) {
-            chartCategoryBarObj = new Chart(ctxBar, {
-                type: 'bar',
-                data: {
-                    labels: ['Dalam Sempadan', 'Luar Sempadan'],
-                    datasets: [{
-                        label: 'Jumlah Bidang',
-                        data: [48, 267],
-                        backgroundColor: ['#ef4444', '#10b981'],
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
+async function loadAndRenderStatistics() {
+    try {
+        const response = await fetch('data/TutupanLahan.json');
+        if (!response.ok) throw new Error('Gagal memuat TutupanLahan.json');
+        const data = await response.json();
+
+        let countDalam = 0;
+        let countBeririsan = 0;
+        let countLuar = 0;
+        const coastalUseMap = {};
+
+        data.features.forEach(feature => {
+            const p = feature.properties || {};
+            const status = (p.Status || '').toLowerCase().trim();
+            const kelas = p.Kelas || 'Lainnya';
+
+            if (status.includes('didalam sempadan') || status.includes('dalam')) {
+                countDalam++;
+            } else if (status.includes('beririsan') || status.includes('irisan')) {
+                countBeririsan++;
+            } else if (status.includes('diluar sempadan') || status.includes('luar')) {
+                countLuar++;
+            }
+
+            if (status.includes('dalam') || status.includes('irisan')) {
+                if (!coastalUseMap[kelas]) coastalUseMap[kelas] = 0;
+                coastalUseMap[kelas]++;
+            }
+        });
+
+        const totalBidang = countDalam + countBeririsan + countLuar;
+
+        const pctDalam = totalBidang > 0 ? ((countDalam / totalBidang) * 100).toFixed(1) : 0;
+        const pctBeririsan = totalBidang > 0 ? ((countBeririsan / totalBidang) * 100).toFixed(1) : 0;
+        const pctLuar = totalBidang > 0 ? ((countLuar / totalBidang) * 100).toFixed(1) : 0;
+
+        // Update Kartu Statistik Berdasarkan ID
+        if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = totalBidang;
+        if (document.getElementById('stat-dalam')) document.getElementById('stat-dalam').innerText = countDalam;
+        if (document.getElementById('pct-dalam')) document.getElementById('pct-dalam').innerText = `(${pctDalam}%)`;
+
+        if (document.getElementById('stat-beririsan')) document.getElementById('stat-beririsan').innerText = countBeririsan;
+        if (document.getElementById('pct-beririsan')) document.getElementById('pct-beririsan').innerText = `(${pctBeririsan}%)`;
+
+        if (document.getElementById('stat-luar')) document.getElementById('stat-luar').innerText = countLuar;
+        if (document.getElementById('pct-luar')) document.getElementById('pct-luar').innerText = `(${pctLuar}%)`;
+
+        // Render Grafik Statistik Dinamis
+        renderStatChartsDynamic(countDalam, countBeririsan, countLuar, coastalUseMap);
+
+    } catch (error) {
+        console.warn('Gagal memuat statistik spasial:', error);
+    }
+}
+
+/**
+ * Render Bar & Pie Charts untuk Halaman Statistik Secara Dinamis
+ */
+function renderStatChartsDynamic(dalam, beririsan, luar, coastalMap) {
+    // 1. Bar Chart Kategori Sempadan
+    const ctxBar = document.getElementById('chartCategoryBar');
+    if (ctxBar) {
+        if (chartCategoryBarObj) chartCategoryBarObj.destroy();
+        chartCategoryBarObj = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['Dalam Sempadan', 'Beririsan Sempadan', 'Luar Sempadan'],
+                datasets: [{
+                    label: 'Jumlah Bidang',
+                    data: [dalam, beririsan, luar],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
     }
 
-    if (!chartCoastalUsePieObj) {
-        const ctxPie = document.getElementById('chartCoastalUsePie');
-        if (ctxPie) {
-            chartCoastalUsePieObj = new Chart(ctxPie, {
-                type: 'pie',
-                data: {
-                    labels: ['Permukiman', 'Sawah', 'Kebun/Tegalan', 'Tambak', 'Mangrove', 'Lainnya'],
-                    datasets: [{
-                        data: [25.8, 16.7, 14.2, 12.3, 10.1, 20.9],
-                        backgroundColor: ['#ef4444', '#fde047', '#d97706', '#2563eb', '#15803d', '#94a3b8']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
-                    }
+    // 2. Pie Chart Penggunaan Lahan Pesisir
+    const ctxPie = document.getElementById('chartCoastalUsePie');
+    if (ctxPie) {
+        const labels = Object.keys(coastalMap);
+        const values = Object.values(coastalMap);
+
+        if (chartCoastalUsePieObj) chartCoastalUsePieObj.destroy();
+        chartCoastalUsePieObj = new Chart(ctxPie, {
+            type: 'pie',
+            data: {
+                labels: labels.length > 0 ? labels : ['Permukiman', 'Sawah', 'Tambak', 'Mangrove'],
+                datasets: [{
+                    data: values.length > 0 ? values : [25, 25, 25, 25],
+                    backgroundColor: ['#ef4444', '#fde047', '#2563eb', '#15803d', '#d97706', '#94a3b8']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
                 }
-            });
-        }
+            }
+        });
     }
 }
 

@@ -1,8 +1,3 @@
-/**
- * WebGIS Application Logic Script
- * Desa Lontar, Kec. Tirtayasa, Kab. Serang
- */
-
 // Global Chart Instances
 let chartLandUseObj = null;
 let chartCategoryBarObj = null;

@@ -1,376 +1,297 @@
 /**
- * WebGIS Map Configuration Script (Leaflet.js)
+ * WebGIS Map Configuration & Leaflet Initialization Script
  * Desa Lontar, Kec. Tirtayasa, Kab. Serang
- * Disesuaikan dengan Legenda Peta Resmi (Jalan, Sungai, Batas, & Tutupan Lahan)
  */
 
-const LONTAR_CENTER = [-5.972229812413505, 106.2972349864214];
+// Koordinat Pusat Desa Lontar
+const LONTAR_CENTER = [-5.9785, 106.3150];
 const LONTAR_ZOOM = 14;
 
-// Basemap Tile Layers
-const basemaps = {
-    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }),
-    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
-};
-
-// Global Map & Layers
+// Global Map Instances
 let mapMain = null;
-let geojsonBatasDesaLayer = null;
-let geojsonBatasAdminLayer = null;
-let geojsonTutupanLahanLayer = null;
-let geojsonSempadanLayer = null;
-let geojsonJalanLayer = null;
-let geojsonSungaiLayer = null;
-let geojsonMangroveLayer = null; 
-let geojsonPemukimanLayer = null; 
-let currentBasemap = 'satellite';
-
 let mapLahan = null;
-let geojsonLahanLayer = null;
 let mapIdentifikasi = null;
-// Menyimpan referensi layer bidang untuk pencarian
-let parcelLayersList = [];
 
-// Palet Warna Sesuai Gambar Legenda Resmi Anda
-const colorPalette = {
-    'Permukiman': '#ef4444',       // Merah
-    'Sawah': '#fde047',            // Kuning
-    'Kebun / Tegalan': '#d97706',    // Coklat/Tegalan (Opsional)
-    'Tambak': '#2563eb',           // Biru
-    'Mangrove': '#15803d',         // Hijau Tua
-    'Badan Air': '#38bdf8',        // Biru Muda / Saluran
-    'Lahan Terbuka': '#d4b28c',    // Coklat Muda / Krem
-    'Fasilitas Umum': '#c084fc'
+// Global Layer Groups & Data Cache
+let geojsonLayers = {
+    admin: null,
+    parcels: null,
+    mangrove: null,
+    pemukiman: null,
+    sempadan: null
 };
 
-// Fetch JSON Helper
-async function fetchJSON(filepath) {
+let cachedTutupanLahan = null;
+let cachedBatasDesa = null;
+let cachedSempadan = null;
+
+// Basemap Definitions
+const basemaps = {
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
+    })
+};
+
+let currentBasemapKey = 'satellite';
+
+/**
+ * Helper untuk Mengambil File JSON dengan Aman
+ */
+async function fetchJSON(url) {
     try {
-        const response = await fetch(filepath);
-        if (!response.ok) throw new Error(`Gagal memuat ${filepath}`);
-        return await response.json();
-    } catch (error) {
-        console.warn(`Peringatan: Gagal memuat ${filepath}`, error);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Gagal memuat ${url}`);
+        return await res.json();
+    } catch (err) {
+        console.warn(err);
         return null;
     }
 }
 
-// Inisialisasi Peta Utama
-async function initMainMap() {
-    if (mapMain) return;
+/**
+ * PENGATURAN KONTROL AKSES POPUP (Berdasarkan Status Login Admin)
+ */
+function createParcelPopupContent(p) {
+    // Mengecek apakah user saat ini berstatus admin yang sedang login
+    const isLoggedInAdmin = currentUser && currentUser.role === 'admin';
+
+    // Jika belum login, sembunyikan nomor bidang & luas dengan status terkunci
+    const noBidangHTML = isLoggedInAdmin 
+        ? `<div class="font-bold text-slate-800 border-b pb-1 mb-1 text-sm">Bidang No: ${p.No_bidang || '-'}</div>` 
+        : `<div class="font-bold text-slate-500 border-b pb-1 mb-1 text-xs italic flex items-center gap-1"><i class="fa-solid fa-lock text-amber-500"></i> Bidang No: [Terkunci / Login Admin]</div>`;
+
+    const luasHTML = isLoggedInAdmin 
+        ? `<div><b>Luas:</b> ${p['luas ha'] || p.luas_ha || 0} ha (${p['luas m3'] ? (p['luas m3'] * 1000).toFixed(2) : '-'} m²)</div>`
+        : `<div class="text-slate-400 italic flex items-center gap-1"><i class="fa-solid fa-lock text-amber-500"></i> <b>Luas:</b> [Memerlukan Login Admin]</div>`;
+
+    return `
+        <div class="text-xs font-sans space-y-1 p-1 min-w-[190px]">
+            ${noBidangHTML}
+            <div><b>Kelas:</b> ${p.Kelas || '-'}</div>
+            ${luasHTML}
+            <div><b>Status Sempadan:</b> <span class="font-semibold text-emerald-600">${p.Status || '-'}</span></div>
+        </div>
+    `;
+}
+
+/**
+ * 1. INISIALISASI PETA UTAMA (Tab: Peta & Layer)
+ */
+async function initMainMap(forceReload = false) {
+    if (mapMain && !forceReload) return;
+    
+    if (mapMain && forceReload) {
+        mapMain.remove();
+        mapMain = null;
+    }
+
+    const mapContainer = document.getElementById('main-map');
+    if (!mapContainer) return;
 
     mapMain = L.map('main-map').setView(LONTAR_CENTER, LONTAR_ZOOM);
-    basemaps[currentBasemap].addTo(mapMain);
+    basemaps[currentBasemapKey].addTo(mapMain);
 
-    // 1. Batas Desa Lontar (Garis hitam putus-putus tebal)
-    const batasData = await fetchJSON('data/batslontar.json');
-    if (batasData) {
-        geojsonBatasDesaLayer = L.geoJSON(batasData, {
-            style: { color: '#000000', weight: 3, dashArray: '6, 6', fillOpacity: 0.0, fillColor: 'transparent' },
-            onEachFeature: (feature, layer) => {
-                const p = feature.properties || {};
-                const luas = (typeof p.Luas_ha === 'number') ? p.Luas_ha.toFixed(2) : (p.luas_ha || '-');
-                const namaObj = p.NAMOBJ || p.nama || 'Desa Lontar';
-                layer.bindPopup(`<div class="text-xs font-sans"><b>Batas Desa Lontar</b><br>Nama: ${namaObj}<br>Luas: ${luas} ha</div>`);
-            }
-        }).addTo(mapMain);
-        mapMain.fitBounds(geojsonBatasDesaLayer.getBounds());
-    }
+    // Muat data geojson jika belum di-cache
+    if (!cachedTutupanLahan) cachedTutupanLahan = await fetchJSON('data/TutupanLahan.json');
+    if (!cachedBatasDesa) cachedBatasDesa = await fetchJSON('data/batslontar.json');
+    if (!cachedSempadan) cachedSempadan = await fetchJSON('data/sempadan_pantai.json');
 
-    // 1b. Batas Desa Sekitar / Administrasi (Garis abu-abu putus-putus)
-    const adminData = await fetchJSON('data/batasadministrasi.json');
-    if (adminData) {
-        geojsonBatasAdminLayer = L.geoJSON(adminData, {
-            style: { color: '#64748b', weight: 2, dashArray: '4, 4', fillOpacity: 0.0 }
+    // Layer Batas Desa
+    if (cachedBatasDesa) {
+        geojsonLayers.admin = L.geoJSON(cachedBatasDesa, {
+            style: { color: '#000000', weight: 2.5, dashArray: '5, 5', fillOpacity: 0.0 }
         }).addTo(mapMain);
     }
 
-    // 2. Sempadan Pantai
-    const sempadanData = await fetchJSON('data/sempadan_pantai.json');
-    if (sempadanData) {
-        geojsonSempadanLayer = L.geoJSON(sempadanData, {
-            style: {
-                color: '#e11d48',
-                weight: 2,
-                dashArray: '5, 5',
-                fillColor: '#fb7185',
-                fillOpacity: 0.3
-            }
+    // Layer Sempadan Pantai
+    if (cachedSempadan) {
+        geojsonLayers.sempadan = L.geoJSON(cachedSempadan, {
+            style: { color: '#e11d48', weight: 2, dashArray: '4, 4', fillColor: '#fb7185', fillOpacity: 0.3 }
         }).addTo(mapMain);
     }
 
-    // 3. Jalan (Garis Merah sesuai legenda)
-    const jalanData = await fetchJSON('data/datajalan.json');
-    if (jalanData) {
-        geojsonJalanLayer = L.geoJSON(jalanData, {
-            style: { color: '#dc2626', weight: 2.5, opacity: 0.9 },
-            onEachFeature: (feature, layer) => {
-                const p = feature.properties || {};
-                layer.bindPopup(`<div class="text-xs font-sans"><b>Jalan</b><br>Keterangan: ${p.REMARK || p.name || 'Jalan Desa'}</div>`);
-            }
-        }).addTo(mapMain);
-    }
+    // Layer Tutupan Lahan & Bidang Tanah (Dengan Pewarnaan Klasifikasi)
+    if (cachedTutupanLahan) {
+        const colorMapping = {
+            'Permukiman': '#ef4444',
+            'Sawah': '#fde047',
+            'Kebun / Tegalan': '#d97706',
+            'Tambak': '#2563eb',
+            'Mangrove': '#15803d',
+            'Badan Air': '#38bdf8',
+            'Lahan Terbuka': '#d4b28c'
+        };
 
-    // 4. Sungai (Garis Biru sesuai legenda)
-    const sungaiData = await fetchJSON('data/datasungai.json');
-    if (sungaiData) {
-        geojsonSungaiLayer = L.geoJSON(sungaiData, {
-            style: { color: '#2563eb', weight: 2, opacity: 0.85 },
-            onEachFeature: (feature, layer) => {
-                const p = feature.properties || {};
-                layer.bindPopup(`<div class="text-xs font-sans"><b>Sungai / Saluran</b><br>Nama: ${p.REMARK || p.name || '-'}</div>`);
-            }
-        }).addTo(mapMain);
-    }
-
-    // 5. Tutupan Lahan (Bidang Tanah, Mangrove, Pemukiman, Sawah, Tambak, dll)
-    const tutupanLahanData = await fetchJSON('data/TutupanLahan.json');
-    if (tutupanLahanData) {
-        const mangroveFeatures = [];
-        const pemukimanFeatures = [];
-
-        geojsonTutupanLahanLayer = L.geoJSON(tutupanLahanData, {
+        geojsonLayers.parcels = L.geoJSON(cachedTutupanLahan, {
             style: function(feature) {
-                const kelas = feature.properties.Kelas;
+                const kelas = feature.properties.Kelas || 'Lainnya';
                 return {
-                    fillColor: colorPalette[kelas] || '#94a3b8',
-                    weight: 0.5,
+                    fillColor: colorMapping[kelas] || '#94a3b8',
+                    weight: 0.6,
                     color: '#ffffff',
                     fillOpacity: 0.75
                 };
             },
             onEachFeature: (feature, layer) => {
-                const p = feature.properties;
-                
-                parcelLayersList.push({ feature, layer });
-
-                if (p.Kelas === 'Mangrove') mangroveFeatures.push(feature);
-                if (p.Kelas === 'Permukiman') pemukimanFeatures.push(feature);
-
-                layer.bindPopup(`
-                    <div class="text-xs font-sans space-y-1">
-                        <div class="font-bold text-slate-800 border-b pb-1 mb-1">Bidang No: ${p.No_bidang || '-'}</div>
-                        <div><b>Kelas:</b> ${p.Kelas || '-'}</div>
-                        <div><b>Luas:</b> ${p['luas ha'] || '-'} ha (${p['luas m3'] || '-'} m²)</div>
-                        <div><b>Status:</b> <span class="${p.Status && p.Status.includes('didalam') ? 'text-rose-600 font-bold' : 'text-emerald-600'}">${p.Status || '-'}</span></div>
-                    </div>
-                `);
+                layer.bindPopup(createParcelPopupContent(feature.properties));
             }
         }).addTo(mapMain);
-
-        if (mangroveFeatures.length > 0) {
-            geojsonMangroveLayer = L.geoJSON({type: "FeatureCollection", features: mangroveFeatures}, {
-                style: { fillColor: colorPalette['Mangrove'], weight: 0.5, color: '#fff', fillOpacity: 0.8 }
-            });
-        }
-        if (pemukimanFeatures.length > 0) {
-            geojsonPemukimanLayer = L.geoJSON({type: "FeatureCollection", features: pemukimanFeatures}, {
-                style: { fillColor: colorPalette['Permukiman'], weight: 0.5, color: '#fff', fillOpacity: 0.8 }
-            });
-        }
     }
 }
 
-// Toggle Basemap
-function toggleBasemap(type) {
-    if (!mapMain) return;
-    mapMain.removeLayer(basemaps[currentBasemap]);
-    basemaps[type].addTo(mapMain);
-    currentBasemap = type;
-}
+/**
+ * 2. INISIALISASI PETA LAHAN (Tab: Penggunaan Lahan)
+ */
+async function initLahanMap(forceReload = false) {
+    if (mapLahan && !forceReload) return;
 
-// Toggle Checkbox Layer Visibility
-function toggleLayer(layerName) {
-    if (!mapMain) return;
-    let targetLayer = null;
-
-    if (layerName === 'admin') {
-        const checkboxAdmin = document.getElementById('layer-admin');
-        const checkboxDesa = document.getElementById('layer-border-desa');
-        if (geojsonBatasAdminLayer) {
-            if (checkboxAdmin && checkboxAdmin.checked) {
-                mapMain.addLayer(geojsonBatasAdminLayer);
-            } else {
-                mapMain.removeLayer(geojsonBatasAdminLayer);
-            }
-        }
-        if (geojsonBatasDesaLayer) {
-            if (checkboxDesa && checkboxDesa.checked) {
-                mapMain.addLayer(geojsonBatasDesaLayer);
-            } else {
-                mapMain.removeLayer(geojsonBatasDesaLayer);
-            }
-        }
+    if (mapLahan && forceReload) {
+        mapLahan.remove();
+        mapLahan = null;
     }
-    if (layerName === 'parcels') targetLayer = geojsonTutupanLahanLayer;
-    if (layerName === 'mangrove') targetLayer = geojsonMangroveLayer;
-    if (layerName === 'pemukiman') targetLayer = geojsonPemukimanLayer;
-    if (layerName === 'sempadan') targetLayer = geojsonSempadanLayer;
-    if (layerName === 'jalan') targetLayer = geojsonJalanLayer;
-    if (layerName === 'sungai') targetLayer = geojsonSungaiLayer;
 
-    if (!targetLayer) return;
+    const container = document.getElementById('map-lahan');
+    if (!container) return;
 
-    const checkbox = document.getElementById(`layer-${layerName}`);
-    if (checkbox && checkbox.checked) {
-        mapMain.addLayer(targetLayer);
-    } else if (checkbox) {
-        mapMain.removeLayer(targetLayer);
-    }
-}
-
-// Dynamic Opacity Controller via Slider
-function changeOpacity(layerName, value) {
-    const opacity = value / 100;
-    const valEl = document.getElementById(`val-${layerName}`);
-    if (valEl) valEl.innerText = value;
-
-    let targetLayer = null;
-    if (layerName === 'parcels') targetLayer = geojsonTutupanLahanLayer;
-    if (layerName === 'mangrove') targetLayer = geojsonMangroveLayer;
-    if (layerName === 'pemukiman') targetLayer = geojsonPemukimanLayer;
-    if (layerName === 'sempadan') targetLayer = geojsonSempadanLayer;
-
-    if (targetLayer) {
-        targetLayer.setStyle({ fillOpacity: opacity, opacity: opacity });
-    }
-}
-
-// Fungsi Pencarian Nomor Bidang Tanah
-function searchParcel() {
-    const query = document.getElementById('map-search').value.trim().toLowerCase();
-    if (!query) return;
-
-    const found = parcelLayersList.find(item => {
-        const noBidang = String(item.feature.properties.No_bidang || '').toLowerCase();
-        return noBidang.includes(query);
-    });
-
-    if (found) {
-        mapMain.fitBounds(found.layer.getBounds(), { maxZoom: 18 });
-        found.layer.openPopup();
-    }
-}
-
-// Fungsi Inisialisasi Peta Khusus Tab Lahan
-async function initLahanMap() {
-    if (mapLahan) return;
-
-    // Inisialisasi peta pada div id="map-lahan"
     mapLahan = L.map('map-lahan').setView(LONTAR_CENTER, LONTAR_ZOOM);
-    
-    // Gunakan basemap satelit sebagai default
     basemaps['satellite'].addTo(mapLahan);
 
-    // 1. Muat Batas Desa Lontar
-    const batasData = await fetchJSON('data/batslontar.json');
-    if (batasData) {
-        L.geoJSON(batasData, {
-            style: { color: '#000000', weight: 2.5, dashArray: '5, 5', fillOpacity: 0.0 }
+    if (!cachedTutupanLahan) cachedTutupanLahan = await fetchJSON('data/TutupanLahan.json');
+    if (!cachedBatasDesa) cachedBatasDesa = await fetchJSON('data/batslontar.json');
+
+    if (cachedBatasDesa) {
+        L.geoJSON(cachedBatasDesa, {
+            style: { color: '#000000', weight: 2, dashArray: '4, 4', fillOpacity: 0.0 }
         }).addTo(mapLahan);
-        mapLahan.fitBounds(L.geoJSON(batasData).getBounds());
     }
 
-    // 2. Muat Jalan & Sungai sebagai referensi visual
-    const jalanData = await fetchJSON('data/datajalan.json');
-    if (jalanData) {
-        L.geoJSON(jalanData, { style: { color: '#dc2626', weight: 2, opacity: 0.8 } }).addTo(mapLahan);
-    }
-
-    const sungaiData = await fetchJSON('data/datasungai.json');
-    if (sungaiData) {
-        L.geoJSON(sungaiData, { style: { color: '#2563eb', weight: 1.8, opacity: 0.8 } }).addTo(mapLahan);
-    }
-
-    // 3. Muat Tutupan Lahan dengan Palet Warna Resmi
-    const tutupanLahanData = await fetchJSON('data/TutupanLahan.json');
-    if (tutupanLahanData) {
-        geojsonLahanLayer = L.geoJSON(tutupanLahanData, {
+    if (cachedTutupanLahan) {
+        L.geoJSON(cachedTutupanLahan, {
             style: function(feature) {
-                const kelas = feature.properties.Kelas;
-                return {
-                    fillColor: colorPalette[kelas] || '#94a3b8',
-                    weight: 0.5,
-                    color: '#ffffff',
-                    fillOpacity: 0.75
-                };
+                const colors = { 'Permukiman': '#ef4444', 'Sawah': '#fde047', 'Kebun / Tegalan': '#d97706', 'Tambak': '#2563eb', 'Mangrove': '#15803d', 'Badan Air': '#38bdf8', 'Lahan Terbuka': '#d4b28c' };
+                return { fillColor: colors[feature.properties.Kelas] || '#94a3b8', weight: 0.5, color: '#fff', fillOpacity: 0.8 };
             },
             onEachFeature: (feature, layer) => {
-                const p = feature.properties;
-                layer.bindPopup(`
-                    <div class="text-xs font-sans space-y-1">
-                        <div class="font-bold text-slate-800 border-b pb-1 mb-1">Bidang No: ${p.No_bidang || '-'}</div>
-                        <div><b>Kelas:</b> ${p.Kelas || '-'}</div>
-                        <div><b>Luas:</b> ${p['luas ha'] || '-'} ha</div>
-                        <div><b>Status:</b> ${p.Status || '-'}</div>
-                    </div>
-                `);
+                layer.bindPopup(createParcelPopupContent(feature.properties));
             }
         }).addTo(mapLahan);
     }
 }
 
-// Fungsi Inisialisasi Peta Khusus Tab Identifikasi Sempadan Pantai
-async function initIdentifikasiMap() {
-    if (mapIdentifikasi) return;
+/**
+ * 3. INISIALISASI PETA IDENTIFIKASI SEMPADAN (Tab: Identifikasi)
+ */
+async function initIdentifikasiMap(forceReload = false) {
+    if (mapIdentifikasi && !forceReload) return;
 
-    // Inisialisasi peta pada div id="map-identifikasi"
+    if (mapIdentifikasi && forceReload) {
+        mapIdentifikasi.remove();
+        mapIdentifikasi = null;
+    }
+
+    const container = document.getElementById('map-identifikasi');
+    if (!container) return;
+
     mapIdentifikasi = L.map('map-identifikasi').setView(LONTAR_CENTER, LONTAR_ZOOM);
-    
-    // Gunakan basemap satelit
     basemaps['satellite'].addTo(mapIdentifikasi);
 
-    // 1. Muat Batas Desa Lontar
-    const batasData = await fetchJSON('data/batslontar.json');
-    if (batasData) {
-        L.geoJSON(batasData, {
-            style: { color: '#000000', weight: 2.5, dashArray: '5, 5', fillOpacity: 0.0 }
-        }).addTo(mapIdentifikasi);
-        mapIdentifikasi.fitBounds(L.geoJSON(batasData).getBounds());
-    }
+    if (!cachedBatasDesa) cachedBatasDesa = await fetchJSON('data/batslontar.json');
+    if (!cachedSempadan) cachedSempadan = await fetchJSON('data/sempadan_pantai.json');
+    if (!cachedTutupanLahan) cachedTutupanLahan = await fetchJSON('data/TutupanLahan.json');
 
-    // 2. Muat Sempadan Pantai (Highlight utama untuk identifikasi)
-    const sempadanData = await fetchJSON('data/sempadan_pantai.json');
-    if (sempadanData) {
-        L.geoJSON(sempadanData, {
-            style: {
-                color: '#e11d48',
-                weight: 2,
-                dashArray: '5, 5',
-                fillColor: '#fb7185',
-                fillOpacity: 0.35
-            }
+    if (cachedBatasDesa) {
+        L.geoJSON(cachedBatasDesa, {
+            style: { color: '#000000', weight: 2, dashArray: '4, 4', fillOpacity: 0.0 }
         }).addTo(mapIdentifikasi);
     }
 
-    // 3. Muat Tutupan Lahan / Bidang Tanah dengan pewarnaan status Sempadan (jika ada properti Status)
-    const tutupanLahanData = await fetchJSON('data/TutupanLahan.json');
-    if (tutupanLahanData) {
-        L.geoJSON(tutupanLahanData, {
+    if (cachedSempadan) {
+        L.geoJSON(cachedSempadan, {
+            style: { color: '#e11d48', weight: 2, dashArray: '5, 5', fillColor: '#fb7185', fillOpacity: 0.35 }
+        }).addTo(mapIdentifikasi);
+    }
+
+    if (cachedTutupanLahan) {
+        L.geoJSON(cachedTutupanLahan, {
             style: function(feature) {
                 const status = (feature.properties.Status || '').toLowerCase();
-                let fillColor = '#10b981'; // Default Luar Sempadan (Hijau)
-                
-                if (status.includes('dalam')) fillColor = '#ef4444';      // Merah (Di Dalam)
-                else if (status.includes('irisan') || status.includes('beririsan')) fillColor = '#f59e0b'; // Kuning/Amber (Beririsan)
+                let fillColor = '#10b981'; // Luar Sempadan (Hijau)
+                if (status.includes('didalam') || status.includes('dalam')) fillColor = '#ef4444'; // Merah
+                else if (status.includes('beririsan') || status.includes('irisan')) fillColor = '#f59e0b'; // Kuning
 
-                return {
-                    fillColor: fillColor,
-                    weight: 0.5,
-                    color: '#ffffff',
-                    fillOpacity: 0.7
-                };
+                return { fillColor: fillColor, weight: 0.5, color: '#ffffff', fillOpacity: 0.7 };
             },
             onEachFeature: (feature, layer) => {
-                const p = feature.properties;
-                layer.bindPopup(`
-                    <div class="text-xs font-sans space-y-1">
-                        <div class="font-bold text-slate-800 border-b pb-1 mb-1">Bidang No: ${p.No_bidang || '-'}</div>
-                        <div><b>Status Sempadan:</b> <span class="font-semibold">${p.Status || '-'}</span></div>
-                        <div><b>Luas:</b> ${p['luas ha'] || '-'} ha</div>
-                    </div>
-                `);
+                layer.bindPopup(createParcelPopupContent(feature.properties));
             }
         }).addTo(mapIdentifikasi);
+    }
+}
+
+/**
+ * Kontrol Ganti Basemap (OSM Vektor / Esri Satelit)
+ */
+function toggleBasemap(type) {
+    if (!mapMain) return;
+    mapMain.removeLayer(basemaps[currentBasemapKey]);
+    currentBasemapKey = type;
+    basemaps[currentBasemapKey].addTo(mapMain);
+}
+
+/**
+ * Kontrol Opacity Layer pada Peta Utama
+ */
+function changeOpacity(layerName, val) {
+    const opacityVal = val / 100;
+    const valSpan = document.getElementById(`val-${layerName}`);
+    if (valSpan) valSpan.innerText = val;
+
+    if (geojsonLayers[layerName] && mapMain.hasLayer(geojsonLayers[layerName])) {
+        geojsonLayers[layerName].setStyle({ fillOpacity: opacityVal, opacity: opacityVal });
+    }
+}
+
+/**
+ * Kontrol Toggle Checkbox Layer On/Off
+ */
+function toggleLayer(layerName) {
+    if (!mapMain) return;
+    const checkbox = document.getElementById(`layer-${layerName}`);
+    if (!checkbox) return;
+
+    if (checkbox.checked) {
+        if (geojsonLayers[layerName]) mapMain.addLayer(geojsonLayers[layerName]);
+    } else {
+        if (geojsonLayers[layerName]) mapMain.removeLayer(geojsonLayers[layerName]);
+    }
+}
+
+/**
+ * Fitur Pencarian Bidang Tanah Berdasarkan Nomor Bidang (`map-search`)
+ */
+function searchParcel() {
+    const keyword = document.getElementById('map-search').value.trim().toLowerCase();
+    if (!keyword || !mapMain || !cachedTutupanLahan) return;
+
+    let foundFeature = null;
+    let foundLayer = null;
+
+    geojsonLayers.parcels.eachLayer(layer => {
+        const p = layer.feature.properties;
+        const noBidang = (p.No_bidang || '').toLowerCase();
+        if (noBidang.includes(keyword)) {
+            foundFeature = feature;
+            foundLayer = layer;
+        }
+    });
+
+    if (foundLayer) {
+        mapMain.fitBounds(foundLayer.getBounds(), { maxZoom: 18 });
+        foundLayer.openPopup();
     }
 }

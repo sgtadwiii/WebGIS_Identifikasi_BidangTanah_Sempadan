@@ -1,11 +1,19 @@
+/**
+ * WebGIS Application Logic Script
+ * Desa Lontar, Kec. Tirtayasa, Kab. Serang
+ */
+
 // Global Chart Instances
 let chartLandUseObj = null;
 let chartCategoryBarObj = null;
 let chartCoastalUsePieObj = null;
 
+// Global Auth State (Sesi Login dari localStorage)
+let currentUser = JSON.parse(localStorage.getItem('webgis_user')) || null;
+
 /**
  * Tab Switcher (Single Page Application)
- * @param {string} tabId - ID halaman yang akan dituju ('home', 'peta', 'lahan', 'identifikasi', 'statistik')
+ * @param {string} tabId - ID halaman yang akan dituju ('home', 'peta', 'lahan', 'identifikasi', 'statistik', 'informasi')
  */
 function switchTab(tabId) {
     // 1. Sembunyikan semua section halaman
@@ -350,6 +358,132 @@ function renderStatChartsDynamic(dalam, beririsan, luar, coastalMap) {
 }
 
 /**
+ * ==========================================
+ * SISTEM AUTENTIKASI / LOGIN & KONTROL AKSES
+ * ==========================================
+ */
+
+// Toggle Dropdown Profil Topbar
+function toggleUserDropdown() {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown) dropdown.classList.toggle('hidden');
+}
+
+// Buka/Tutup Modal Login
+function openLoginModal() {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+    
+    const modal = document.getElementById('login-modal');
+    if (modal) modal.classList.remove('hidden');
+    
+    const errEl = document.getElementById('login-error');
+    if (errEl) errEl.classList.add('hidden');
+}
+
+function closeLoginModal() {
+    const modal = document.getElementById('login-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// Fungsi Handling Submit Login dari users.json
+async function handleLogin(event) {
+    event.preventDefault();
+    const userIn = document.getElementById('login-username').value.trim();
+    const passIn = document.getElementById('login-password').value.trim();
+
+    try {
+        const response = await fetch('data/users.json');
+        const users = await response.json();
+
+        // Validasi kredensial
+        const foundUser = users.find(u => u.username === userIn && u.password === passIn);
+
+        if (foundUser) {
+            currentUser = {
+                name: foundUser.name,
+                username: foundUser.username,
+                role: foundUser.role
+            };
+            // Simpan sesi ke localStorage
+            localStorage.setItem('webgis_user', JSON.stringify(currentUser));
+            
+            closeLoginModal();
+            updateUserUI();
+            
+            // Refresh peta agar popup memperbarui data sensitif (No Bidang & Luas)
+            refreshAllMaps();
+        } else {
+            const errEl = document.getElementById('login-error');
+            if (errEl) errEl.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error("Gagal memuat kredensial users.json:", err);
+    }
+}
+
+// Fungsi Logout
+function handleLogout() {
+    currentUser = null;
+    localStorage.removeItem('webgis_user');
+    toggleUserDropdown();
+    updateUserUI();
+    refreshAllMaps();
+}
+
+// Update Tampilan Profil di Topbar Sesuai Status Login
+function updateUserUI() {
+    const userDisplayName = document.getElementById('user-display-name');
+    const userAvatar = document.getElementById('user-avatar');
+    const dropdownUserName = document.getElementById('dropdown-user-name');
+    const dropdownUserRole = document.getElementById('dropdown-user-role');
+    const authActionArea = document.getElementById('auth-action-area');
+
+    if (currentUser) {
+        // Mode Administrator (Logged In)
+        if (userDisplayName) userDisplayName.innerText = currentUser.name;
+        if (userAvatar) {
+            userAvatar.className = "w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs border border-blue-400 shadow-sm";
+            userAvatar.innerHTML = `<i class="fa-solid fa-user-shield"></i>`;
+        }
+        if (dropdownUserName) dropdownUserName.innerText = currentUser.name;
+        if (dropdownUserRole) dropdownUserRole.innerText = "Akses Penuh (Administrator)";
+        
+        if (authActionArea) {
+            authActionArea.innerHTML = `
+                <button onclick="handleLogout()" class="w-full text-left px-4 py-2 text-rose-600 font-semibold hover:bg-slate-50 flex items-center gap-2 border-t">
+                    <i class="fa-solid fa-right-from-bracket"></i> Keluar (Logout)
+                </button>
+            `;
+        }
+    } else {
+        // Mode Tamu (Guest)
+        if (userDisplayName) userDisplayName.innerText = "Tamu";
+        if (userAvatar) {
+            userAvatar.className = "w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs border border-slate-300";
+            userAvatar.innerHTML = `<i class="fa-solid fa-user"></i>`;
+        }
+        if (dropdownUserName) dropdownUserName.innerText = "Mode Tamu (Guest)";
+        if (dropdownUserRole) dropdownUserRole.innerText = "Informasi Terbatas";
+
+        if (authActionArea) {
+            authActionArea.innerHTML = `
+                <button onclick="openLoginModal()" class="w-full text-left px-4 py-2 text-blue-600 font-semibold hover:bg-slate-50 flex items-center gap-2 border-t">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login Admin
+                </button>
+            `;
+        }
+    }
+}
+
+// Reload layer peta ketika status login berubah agar popup ter-refresh
+function refreshAllMaps() {
+    if (typeof initMainMap === 'function') initMainMap(true);
+    if (typeof initLahanMap === 'function') initLahanMap(true);
+    if (typeof initIdentifikasiMap === 'function') initIdentifikasiMap(true);
+}
+
+/**
  * Fungsi Buka/Tutup Sidebar Mobile
  */
 function toggleMobileSidebar() {
@@ -374,29 +508,8 @@ function closeMobileSidebar() {
     }
 }
 
-function switchInfoTab(tabKey) {
-    // Sembunyikan semua konten tab
-    document.querySelectorAll('.info-tab-content').forEach(el => el.classList.add('hidden'));
-    
-    // Reset style semua tombol tab
-    document.querySelectorAll('.info-tab-btn').forEach(btn => {
-        btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-        btn.classList.add('text-slate-400');
-    });
-
-    // Tampilkan konten yang dipilih
-    const activeContent = document.getElementById(`content-tab-${tabKey}`);
-    if (activeContent) activeContent.classList.remove('hidden');
-
-    // Aktifkan style tombol yang dipilih
-    const activeBtn = document.getElementById(`btn-tab-${tabKey}`);
-    if (activeBtn) {
-        activeBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-        activeBtn.classList.remove('text-slate-400');
-    }
-}
-
 // Inisialisasi awal saat dokumen selesai dimuat
 document.addEventListener('DOMContentLoaded', () => {
+    updateUserUI();
     switchTab('home');
 });

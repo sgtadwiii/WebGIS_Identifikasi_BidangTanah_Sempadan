@@ -374,6 +374,28 @@ function closeMobileSidebar() {
     }
 }
 
+function switchInfoTab(tabKey) {
+    // Sembunyikan semua konten tab
+    document.querySelectorAll('.info-tab-content').forEach(el => el.classList.add('hidden'));
+    
+    // Reset style semua tombol tab
+    document.querySelectorAll('.info-tab-btn').forEach(btn => {
+        btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        btn.classList.add('text-slate-400');
+    });
+
+    // Tampilkan konten yang dipilih
+    const activeContent = document.getElementById(`content-tab-${tabKey}`);
+    if (activeContent) activeContent.classList.remove('hidden');
+
+    // Aktifkan style tombol yang dipilih
+    const activeBtn = document.getElementById(`btn-tab-${tabKey}`);
+    if (activeBtn) {
+        activeBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+        activeBtn.classList.remove('text-slate-400');
+    }
+}
+
 // Inisialisasi awal saat dokumen selesai dimuat
 document.addEventListener('DOMContentLoaded', () => {
     switchTab('home');
